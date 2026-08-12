@@ -235,20 +235,21 @@
 
   /* ---------- Detail panel (slide-over) ---------- */
   .overlay{
-    position:fixed;inset:0;background:rgba(21,26,43,.35);z-index:50;
+    position:fixed;inset:0;background:rgba(15,20,34,.55);z-index:100;
     opacity:0;pointer-events:none;transition:opacity .18s ease;
   }
   .overlay.show{opacity:1;pointer-events:auto;}
   .panel{
-    position:fixed;top:0;right:0;height:100%;width:400px;max-width:92vw;
-    background:var(--surface);z-index:51;box-shadow:-16px 0 48px -12px rgba(21,26,43,.25);
-    transform:translateX(100%);transition:transform .22s ease;
+    position:fixed;top:0;right:0;height:100%;width:460px;max-width:92vw;
+    background:var(--surface);z-index:101;box-shadow:-16px 0 48px -12px rgba(21,26,43,.35);
+    transform:translateX(100%);opacity:1;pointer-events:none;
+    transition:transform .22s ease;
     display:flex;flex-direction:column;
   }
-  .panel.show{transform:translateX(0);}
+  .panel.show{transform:translateX(0);pointer-events:auto;}
   .panel-head{padding:20px 22px;border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:flex-start;}
   .panel-head h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:19px;margin:0 0 4px;font-weight:700;}
-  .panel.wide{width:460px;}
+  .panel.wide{width:640px;}
   .panel-body{padding:20px 22px;overflow-y:auto;flex:1;}
   .field{margin-bottom:16px;}
   .field .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);font-weight:700;margin-bottom:3px;}
