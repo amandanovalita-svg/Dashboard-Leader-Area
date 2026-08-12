@@ -42,7 +42,7 @@
   a{color:inherit;}
 
   /* ---------- Header ---------- */
-  .topheader{background:linear-gradient(155deg,var(--navy) 0%,var(--navy-2) 100%);color:#fff;}
+  .topheader{background:linear-gradient(155deg,var(--navy) 0%,var(--navy-2) 100%);color:#fff;position:sticky;top:0;z-index:60;}
   .topbar{
     max-width:1320px;margin:0 auto;padding:26px 32px;
     display:flex;justify-content:space-between;align-items:flex-start;gap:24px;
@@ -134,6 +134,7 @@
   .filterbar{
     background:var(--surface);border:1px solid var(--border);border-radius:14px;
     padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow);
+    position:sticky;top:var(--header-h,0px);z-index:55;
   }
   .filterbar-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .search-box{
@@ -187,18 +188,19 @@
   /* ---------- Table ---------- */
   .table-card{
     background:var(--surface);border:1px solid var(--border);border-radius:14px;
-    overflow:hidden;box-shadow:var(--shadow);
+    box-shadow:var(--shadow);overflow:hidden;
   }
   .table-toolbar{
     display:flex;justify-content:space-between;align-items:center;
     padding:12px 16px;border-bottom:1px solid var(--border-soft);
+    background:var(--surface);
   }
   .table-toolbar .count-label{font-size:13px;color:var(--ink-soft);}
   .table-toolbar .count-label b{color:var(--ink);}
-  .tbl-scroll{overflow-x:auto;overflow-y:auto;max-height:620px;}
-  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1080px;}
+  .tbl-scroll{overflow:auto;max-height:65vh;}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;min-width:1080px;}
   thead th{
-    position:sticky;top:0;background:var(--bg);z-index:5;
+    position:sticky;top:0;background:var(--bg);z-index:50;
     text-align:left;padding:10px 14px;font-size:11px;text-transform:uppercase;
     letter-spacing:.05em;color:var(--ink-soft);font-weight:700;
     border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none;
@@ -218,11 +220,12 @@
   .badge.central{background:var(--central-soft);color:var(--central);}
   .badge.east{background:var(--east-soft);color:var(--east);}
   .badge.neutral{background:var(--border-soft);color:var(--ink-soft);}
-  .no-results{padding:60px 20px;text-align:center;color:var(--ink-soft);}
+  .no-results{padding:60px 20px;text-align:center;color:var(--ink-soft);background:var(--surface);}
 
   .pagination{
     display:flex;justify-content:space-between;align-items:center;
     padding:12px 16px;border-top:1px solid var(--border-soft);flex-wrap:wrap;gap:10px;
+    background:var(--surface);
   }
   .pagination .page-info{font-size:12.5px;color:var(--ink-soft);}
   .pagination .page-info b{color:var(--ink);}
@@ -318,7 +321,7 @@
     <div class="table-card">
       <div class="table-toolbar">
         <span class="count-label">Menampilkan <b id="shownCount">0</b> dari <b id="totalCount">0</b> orang</span>
-        <button class="btn btn-ghost" id="exportBtn">↓ Export CSV (hasil filter)</button>
+        <button class="btn" id="exportBtn">↓ Export CSV (hasil filter)</button>
       </div>
       <div class="tbl-scroll">
         <table>
@@ -330,8 +333,8 @@
       <div class="pagination" id="pagination">
         <span class="page-info">Halaman <b id="pageCurrent">1</b> dari <b id="pageTotal">1</b></span>
         <div class="page-btns">
-          <button class="btn btn-ghost" id="prevPageBtn">‹ Sebelumnya</button>
-          <button class="btn btn-ghost" id="nextPageBtn">Berikutnya ›</button>
+          <button class="btn" id="prevPageBtn">‹ Sebelumnya</button>
+          <button class="btn" id="nextPageBtn">Berikutnya ›</button>
         </div>
       </div>
     </div>
@@ -425,6 +428,32 @@ const AUTO_REFRESH_MS = 5 * 60 * 1000; // refresh otomatis tiap 5 menit
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+/* ---------------- Freeze header + filterbar ---------------- */
+/* Judul kolom tabel (thead) kini sticky top:0 relatif ke area
+   scroll internal tabel sendiri (.tbl-scroll), jadi tidak perlu
+   dihitung manual lagi di sini - jauh lebih stabil di semua browser. */
+function updateStickyOffsets() {
+  const headerEl = document.querySelector(".topheader");
+  const filterbarEl = document.querySelector(".filterbar");
+  const headerH = headerEl ? Math.round(headerEl.getBoundingClientRect().height) : 0;
+
+  // Set langsung ke style.top (bukan cuma lewat CSS var) - lebih
+  // konsisten diterapkan ulang oleh browser saat ukuran berubah.
+  if (filterbarEl) filterbarEl.style.top = headerH + "px";
+  document.documentElement.style.setProperty("--header-h", headerH + "px");
+}
+window.addEventListener("resize", updateStickyOffsets);
+window.addEventListener("orientationchange", updateStickyOffsets);
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => updateStickyOffsets());
+  document.addEventListener("DOMContentLoaded", () => {
+    const headerEl = document.querySelector(".topheader");
+    if (headerEl) ro.observe(headerEl);
+  });
+}
+document.addEventListener("DOMContentLoaded", updateStickyOffsets);
+setTimeout(updateStickyOffsets, 300); // jaga-jaga kalau font/webfont baru selesai load
 
 /* ---------------- Live data dari Google Sheets (Publish to Web CSV) ---------------- */
 // Ganti URL ini kalau kamu re-publish sheet dan link-nya berubah
@@ -536,6 +565,7 @@ function onDataLoaded(sourceLabel, isRefresh, updatedAt) {
   }
   buildFilterSelects();
   renderAll();
+  updateStickyOffsets();
 }
 
 /* ---------------- Drag & drop ---------------- */
@@ -800,6 +830,7 @@ function renderTable() {
   $("#pagination").style.display = allRows.length ? "flex" : "none";
 
   buildTableHead();
+  updateStickyOffsets();
   const body = $("#tableBody");
   body.innerHTML = "";
   $("#noResults").style.display = allRows.length ? "none" : "block";
@@ -892,6 +923,7 @@ function escapeHtml(str) {
 function renderAll() {
   renderChips();
   renderTable();
+  updateStickyOffsets();
 }
 
 /* ---------------- Auto-load saat halaman dibuka ---------------- */
