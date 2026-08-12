@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Area Leader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#151A2B;
+    --ink-soft:#5B6478;
+    --bg:#EAF2FC;
+    --surface:#FFFFFF;
+    --border:#DCE7F5;
+    --border-soft:#EAF1FB;
+    --navy:#0B2545;
+    --navy-2:#123B6B;
+    --navy-soft:#9FC1F0;
+    --west:#3457D5;
+    --west-soft:#EAEEFC;
+    --central:#0E9F76;
+    --central-soft:#E3F6EE;
+    --east:#D97B29;
+    --east-soft:#FBEADB;
+    --accent:#151A2B;
+    --shadow: 0 1px 2px rgba(11,37,69,0.05), 0 8px 24px -12px rgba(11,37,69,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1320px;margin:0 auto;padding:28px 32px 80px;}
+  a{color:inherit;}
+
+  /* ---------- Header ---------- */
+  .topheader{background:linear-gradient(155deg,var(--navy) 0%,var(--navy-2) 100%);color:#fff;}
+  .topbar{
+    max-width:1320px;margin:0 auto;padding:26px 32px;
+    display:flex;justify-content:space-between;align-items:flex-start;gap:24px;
+    flex-wrap:wrap;
+  }
+  .brand-eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--navy-soft);margin:0 0 6px;
+  }
+  h1{
+    font-family:'Plus Jakarta Sans',sans-serif;
+    font-size:29px;font-weight:800;letter-spacing:-0.01em;margin:0 0 4px;color:#fff;
+  }
+  .subtitle{color:#C6D9F2;font-size:13.5px;margin:0;}
+  .file-controls{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .status-pill{
+    display:flex;align-items:center;gap:7px;
+    font-size:12.5px;color:#DCE8FB;
+    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);
+    border-radius:99px;padding:7px 14px;white-space:nowrap;
+  }
+  .status-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);flex:none;}
+  .status-dot.on{background:#4FD1A5;}
+  .btn{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:13px;
+    border-radius:9px;padding:9px 16px;border:1px solid var(--border);
+    background:var(--surface);color:var(--ink);cursor:pointer;
+    transition:all .15s ease; white-space:nowrap;
+  }
+  .btn:hover{border-color:#C7CBD8;background:#FAFBFD;}
+  .btn:focus-visible{outline:2px solid var(--west);outline-offset:2px;}
+  .btn-primary{background:#fff;color:var(--navy);border-color:#fff;}
+  .btn-primary:hover{background:#DCE8FB;}
+  .btn-ghost{background:transparent;border-color:rgba(255,255,255,.25);color:#EAF2FC;}
+  .btn-ghost:hover{background:rgba(255,255,255,.12);}
+  .btn-overview{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;gap:7px;}
+  .btn-overview:hover{background:rgba(255,255,255,.18);}
+  input[type=file]{display:none;}
+
+  /* ---------- Empty state ---------- */
+  .empty{
+    background:var(--surface);border:1px dashed #C7CBD8;border-radius:16px;
+    padding:64px 32px;text-align:center;margin-top:12px;
+  }
+  .empty-icon{
+    width:52px;height:52px;margin:0 auto 18px;border-radius:12px;
+    background:var(--west-soft);display:flex;align-items:center;justify-content:center;
+  }
+  .empty h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:19px;margin:0 0 8px;}
+  .empty p{color:var(--ink-soft);max-width:440px;margin:0 auto 22px;font-size:13.5px;}
+  .drop{
+    max-width:520px;margin:22px auto 0;border:1.5px dashed #C7CBD8;border-radius:12px;
+    padding:22px;transition:.15s;
+  }
+  .drop.drag{border-color:var(--west);background:var(--west-soft);}
+
+  /* ---------- Overview panel: KPI + chart ---------- */
+  .ov-section{margin-bottom:26px;}
+  .ov-section h4{
+    font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin:0 0 12px;
+  }
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .kpi{
+    background:var(--bg);border:1px solid var(--border);border-radius:12px;
+    padding:14px 16px;
+  }
+  .kpi .label{font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;font-weight:700;}
+  .kpi .value{font-family:'Plus Jakarta Sans',sans-serif;font-size:23px;font-weight:800;margin-top:5px;color:var(--navy);}
+  .kpi .foot{font-size:11px;color:var(--ink-soft);margin-top:3px;}
+
+  .donut-wrap{display:flex;align-items:center;gap:20px;}
+  .donut-legend{display:flex;flex-direction:column;gap:8px;flex:1;}
+  .donut-legend-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;}
+  .donut-legend-row .swatch{display:inline-flex;align-items:center;gap:7px;color:var(--ink);}
+  .donut-legend-row .dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .donut-legend-row b{color:var(--ink);}
+
+  .bar-list{display:flex;flex-direction:column;gap:12px;}
+  .bar-row .bar-label{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:5px;color:var(--ink);}
+  .bar-row .bar-label span:last-child{color:var(--ink-soft);font-weight:600;}
+  .bar-track{height:7px;background:var(--border-soft);border-radius:99px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:99px;}
+
+  /* ---------- Filters ---------- */
+  .filterbar{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow);
+  }
+  .filterbar-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .search-box{
+    flex:1 1 220px;display:flex;align-items:center;gap:8px;
+    border:1px solid var(--border);border-radius:9px;padding:8px 12px;background:var(--bg);
+  }
+  .search-box input{
+    border:none;background:none;outline:none;font-size:13.5px;width:100%;font-family:'Inter',sans-serif;color:var(--ink);
+  }
+  .msel{position:relative;}
+  .msel-btn{
+    border:1px solid var(--border);border-radius:9px;background:var(--bg);
+    padding:8px 12px;font-size:13px;font-weight:500;cursor:pointer;
+    display:flex;align-items:center;gap:6px;color:var(--ink);white-space:nowrap;
+  }
+  .msel-btn .count{
+    background:var(--ink);color:#fff;font-size:10.5px;font-weight:700;
+    border-radius:99px;padding:1px 6px;min-width:16px;text-align:center;
+  }
+  .msel-btn:hover{border-color:#C7CBD8;}
+  .msel-panel{
+    display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:30;
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    box-shadow:0 12px 32px -8px rgba(21,26,43,.18);min-width:220px;max-height:280px;
+    overflow-y:auto;padding:6px;
+  }
+  .msel.open .msel-panel{display:block;}
+  .msel-item{
+    display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;
+    font-size:13px;cursor:pointer;
+  }
+  .msel-item:hover{background:var(--border-soft);}
+  .msel-item input{margin:0;}
+  .msel-clear-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:4px 8px 8px;border-bottom:1px solid var(--border-soft);margin-bottom:4px;
+  }
+  .msel-clear{
+    font-size:11.5px;color:var(--west);font-weight:600;text-decoration:none;
+    padding:4px 6px;cursor:pointer;border-radius:5px;
+  }
+  .msel-clear:hover{background:var(--west-soft);}
+  .clear-all{font-size:12.5px;color:var(--ink-soft);cursor:pointer;text-decoration:underline;white-space:nowrap;}
+  .active-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .chip{
+    display:flex;align-items:center;gap:6px;background:var(--border-soft);
+    border-radius:99px;padding:4px 10px 4px 12px;font-size:12px;color:var(--ink);
+  }
+  .chip button{border:none;background:none;color:var(--ink-soft);cursor:pointer;font-size:13px;padding:0;line-height:1;}
+
+  /* ---------- Table ---------- */
+  .table-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    overflow:hidden;box-shadow:var(--shadow);
+  }
+  .table-toolbar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--border-soft);
+  }
+  .table-toolbar .count-label{font-size:13px;color:var(--ink-soft);}
+  .table-toolbar .count-label b{color:var(--ink);}
+  .tbl-scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:1080px;}
+  thead th{
+    position:sticky;top:0;background:var(--bg);z-index:5;
+    text-align:left;padding:10px 14px;font-size:11px;text-transform:uppercase;
+    letter-spacing:.05em;color:var(--ink-soft);font-weight:700;
+    border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none;
+  }
+  thead th:hover{color:var(--ink);}
+  thead th .arrow{margin-left:4px;opacity:.5;font-size:10px;}
+  tbody td{padding:10px 14px;border-bottom:1px solid var(--border-soft);vertical-align:middle;white-space:nowrap;}
+  tbody tr{cursor:pointer;}
+  tbody tr:hover td{background:var(--border-soft);}
+  .name-cell{font-weight:600;color:var(--ink);}
+  .sub-cell{font-size:13px;color:var(--ink-soft);}
+  .badge{
+    display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;
+    padding:3px 9px;border-radius:99px;
+  }
+  .badge.west{background:var(--west-soft);color:var(--west);}
+  .badge.central{background:var(--central-soft);color:var(--central);}
+  .badge.east{background:var(--east-soft);color:var(--east);}
+  .badge.neutral{background:var(--border-soft);color:var(--ink-soft);}
+  .no-results{padding:60px 20px;text-align:center;color:var(--ink-soft);}
+
+  /* ---------- Detail panel (slide-over) ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(21,26,43,.35);z-index:50;
+    opacity:0;pointer-events:none;transition:opacity .18s ease;
+  }
+  .overlay.show{opacity:1;pointer-events:auto;}
+  .panel{
+    position:fixed;top:0;right:0;height:100%;width:400px;max-width:92vw;
+    background:var(--surface);z-index:51;box-shadow:-16px 0 48px -12px rgba(21,26,43,.25);
+    transform:translateX(100%);transition:transform .22s ease;
+    display:flex;flex-direction:column;
+  }
+  .panel.show{transform:translateX(0);}
+  .panel-head{padding:20px 22px;border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:flex-start;}
+  .panel-head h3{font-family:'Plus Jakarta Sans',sans-serif;font-size:19px;margin:0 0 4px;font-weight:700;}
+  .panel.wide{width:460px;}
+  .panel-body{padding:20px 22px;overflow-y:auto;flex:1;}
+  .field{margin-bottom:16px;}
+  .field .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);font-weight:700;margin-bottom:3px;}
+  .field .v{font-size:14.5px;color:var(--ink);}
+  .field .v a{color:var(--west);text-decoration:none;}
+  .field .v a:hover{text-decoration:underline;}
+  .close-x{border:none;background:none;font-size:20px;color:var(--ink-soft);cursor:pointer;line-height:1;}
+
+  footer{margin-top:30px;text-align:center;color:var(--ink-soft);font-size:12px;}
+  footer .lock{opacity:.7;}
+
+  @media (max-width:900px){
+    .wrap{padding:18px 16px 60px;}
+    .topbar{padding:20px 16px;}
+    table{min-width:900px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<header class="topheader">
+  <div class="topbar">
+    <div>
+      <p class="brand-eyebrow">West · Central · East — Peta Organisasi</p>
+      <h1>Dashboard Area Leader</h1>
+      <p class="subtitle" id="subtitleText">Menghubungkan ke sumber data…</p>
+    </div>
+    <div class="file-controls">
+      <span class="status-pill"><span class="status-dot" id="statusDot"></span><span id="statusText">Menghubungkan…</span></span>
+      <button class="btn btn-overview" id="overviewBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 20V10M12 20V4M20 20v-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        Overview
+      </button>
+      <button class="btn btn-ghost" id="refreshBtn" style="display:none;">↻ Muat Ulang Data</button>
+      <button class="btn btn-primary" id="pickBtn" style="display:none;">Pilih File Excel</button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+    </div>
+  </div>
+</header>
+<div class="wrap">
+
+  <div id="emptyState" class="empty">
+    <div class="empty-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 4h16v4H4V4zm0 6h16v10H4V10z" stroke="#3457D5" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 14h4" stroke="#3457D5" stroke-width="1.6"/></svg>
+    </div>
+    <h2 id="emptyTitle">Hubungkan sumber data</h2>
+    <p id="emptyDesc">Dashboard belum berhasil mengambil data live dari Google Sheets. Kamu bisa memuat file <code>database_karyawan.xlsx</code> (sheet "Database") secara manual sebagai alternatif.</p>
+    <div class="drop" id="dropZone">
+      <button class="btn btn-primary" id="pickBtn2">Pilih File Excel</button>
+      <p style="margin:12px 0 0;font-size:12px;color:var(--ink-soft);">atau tarik &amp; lepas file di sini</p>
+    </div>
+  </div>
+
+  <div id="dashboardArea" style="display:none;">
+
+    <div class="filterbar">
+      <div class="filterbar-row">
+        <div class="search-box">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#5B6478" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="#5B6478" stroke-width="2" stroke-linecap="round"/></svg>
+          <input type="text" id="searchInput" placeholder="Cari nama, email, atau no HP…">
+        </div>
+        <div id="filterSelects" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+        <span class="clear-all" id="clearAllBtn">Hapus semua filter</span>
+      </div>
+      <div class="active-chips" id="activeChips"></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-toolbar">
+        <span class="count-label">Menampilkan <b id="shownCount">0</b> dari <b id="totalCount">0</b> orang</span>
+        <button class="btn btn-ghost" id="exportBtn">↓ Export CSV (hasil filter)</button>
+      </div>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr id="tableHead"></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="no-results" id="noResults" style="display:none;">Tidak ada orang yang cocok dengan filter ini. Coba ubah atau hapus beberapa filter.</div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span class="lock">🔒 Data diambil langsung dari link CSV Google Sheets di browser Anda — tidak ada server backend yang menyimpan atau memproses data.</span>
+  </footer>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="panel" id="panel">
+  <div class="panel-head">
+    <div>
+      <h3 id="panelName">—</h3>
+      <span id="panelBadge"></span>
+    </div>
+    <button class="close-x" id="panelClose">✕</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+</div>
+
+<div class="overlay" id="overviewOverlay"></div>
+<div class="panel wide" id="overviewPanel">
+  <div class="panel-head">
+    <div>
+      <h3>Overview Tim</h3>
+      <span class="subtitle" style="color:var(--ink-soft);">Persebaran berdasarkan data saat ini</span>
+    </div>
+    <button class="close-x" id="overviewClose">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="ov-section">
+      <h4>Ringkasan</h4>
+      <div class="kpis" id="ovKpis"></div>
+    </div>
+    <div class="ov-section">
+      <h4>Distribusi per Region</h4>
+      <div class="donut-wrap" id="ovDonut"></div>
+    </div>
+    <div class="ov-section">
+      <h4>Distribusi per Area</h4>
+      <div class="bar-list" id="ovAreaBars"></div>
+    </div>
+    <div class="ov-section">
+      <h4>Distribusi per Directorate</h4>
+      <div class="bar-list" id="ovDirectorateBars"></div>
+    </div>
+    <div class="ov-section">
+      <h4>Distribusi per Segment</h4>
+      <div class="bar-list" id="ovSegmentBars"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Konfigurasi kolom (harus cocok dengan header di sheet Database)
+   ============================================================ */
+const COLS = {
+  id: "ID", nama: "Nama Lengkap", region: "Region", area: "Area",
+  kota: "Kota/Sub-Area", segment: "Segment", superior: "Superior (Atasan Langsung)",
+  posisiDetail: "Posisi Detail", posisiSingkat: "Posisi Singkat",
+  directorate: "Directorate", email: "Email", hp: "No HP",
+};
+const FILTER_FIELDS = [
+  { key: "region", label: "Region" },
+  { key: "area", label: "Area" },
+  { key: "kota", label: "Kota/Sub-Area" },
+  { key: "segment", label: "Segment" },
+  { key: "posisiSingkat", label: "Posisi" },
+  { key: "directorate", label: "Directorate" },
+  { key: "superior", label: "Superior" },
+];
+const REGION_ORDER = ["West", "Central", "East"];
+const REGION_CLASS = { West: "west", Central: "central", East: "east" };
+
+let rawRows = [];       // semua baris dari excel
+let filters = {};        // key -> Set of selected values
+FILTER_FIELDS.forEach(f => filters[f.key] = new Set());
+let searchTerm = "";
+let sortKey = COLS.nama;
+let sortDir = 1;
+let fsHandle = null;      // File System Access API handle, kalau didukung browser
+let dataSource = null;    // "api" (live Google Sheets) atau "file" (upload manual)
+let autoRefreshTimer = null;
+const AUTO_REFRESH_MS = 5 * 60 * 1000; // refresh otomatis tiap 5 menit
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+/* ---------------- Live data dari Google Sheets (Publish to Web CSV) ---------------- */
+// Ganti URL ini kalau kamu re-publish sheet dan link-nya berubah
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQK71uQpWPIgHcwnShgefucMio1G6FNVwQ7v5jvwZOW1vBEuPsEQHILoh__qLgHc5b0HXW-eZV4s4Yw/pub?gid=0&single=true&output=csv";
+
+async function tryLoadFromApi(isBackgroundRefresh) {
+  try {
+    const res = await fetch(SHEET_CSV_URL + "&cachebust=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("Gagal mengambil CSV, status " + res.status);
+    const csvText = await res.text();
+
+    const wb = XLSX.read(csvText, { type: "string" });
+    const sheetName = wb.SheetNames[0];
+    const json = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: "" });
+
+    rawRows = json.filter(r => String(r[COLS.nama] || "").trim() !== "");
+    dataSource = "api";
+    onDataLoaded("Google Sheets (live)", isBackgroundRefresh, new Date().toISOString());
+
+    if (!autoRefreshTimer) {
+      autoRefreshTimer = setInterval(() => tryLoadFromApi(true), AUTO_REFRESH_MS);
+    }
+    return true;
+  } catch (err) {
+    if (!isBackgroundRefresh) {
+      // Gagal saat load pertama kali → tampilkan fallback upload manual
+      $("#statusText").textContent = "Live data tidak tersedia";
+      $("#emptyDesc").textContent = "Tidak bisa mengambil data live dari Google Sheets (" + err.message + "). Silakan muat file Excel secara manual, atau periksa link CSV di kode dashboard.";
+      $("#pickBtn").style.display = "inline-block";
+    } else {
+      console.warn("Auto-refresh dari Google Sheets gagal:", err.message);
+    }
+    return false;
+  }
+}
+
+/* ---------------- File loading ---------------- */
+$("#pickBtn").addEventListener("click", pickFile);
+$("#pickBtn2").addEventListener("click", pickFile);
+$("#fileInput").addEventListener("change", (e) => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+$("#refreshBtn").addEventListener("click", refreshData);
+
+async function pickFile() {
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: "Excel", accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }],
+      });
+      fsHandle = handle;
+      const file = await handle.getFile();
+      loadFile(file);
+      return;
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+      // fallback ke input biasa kalau API gagal
+    }
+  }
+  $("#fileInput").click();
+}
+
+async function refreshData() {
+  if (dataSource === "api") {
+    await tryLoadFromApi(true);
+    return;
+  }
+  if (fsHandle) {
+    try {
+      const file = await fsHandle.getFile();
+      loadFile(file, true);
+      return;
+    } catch (e) { /* handle mungkin sudah tidak valid, minta pilih ulang */ }
+  }
+  $("#fileInput").click();
+}
+
+function loadFile(file, isRefresh) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: "array" });
+      const sheetName = wb.SheetNames.find(n => n.toLowerCase() === "database") || wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      rawRows = json.filter(r => String(r[COLS.nama] || "").trim() !== "");
+      dataSource = "file";
+      if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+      onDataLoaded(file.name, isRefresh);
+    } catch (err) {
+      alert("Gagal membaca file: " + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function onDataLoaded(sourceLabel, isRefresh, updatedAt) {
+  $("#emptyState").style.display = "none";
+  $("#dashboardArea").style.display = "block";
+  $("#refreshBtn").style.display = (dataSource === "api" || fsHandle) ? "inline-block" : "none";
+  $("#statusDot").classList.add("on");
+  const now = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  if (dataSource === "api") {
+    $("#statusText").textContent = `Live · diperbarui ${now}`;
+    $("#subtitleText").textContent = `${rawRows.length} orang tercatat · sumber: Google Sheets (auto-update tiap ${AUTO_REFRESH_MS / 60000} menit)`;
+  } else {
+    $("#statusText").textContent = `${sourceLabel} · dimuat ${now}`;
+    $("#subtitleText").textContent = `${rawRows.length} orang tercatat · sumber: ${sourceLabel}`;
+  }
+  buildFilterSelects();
+  renderAll();
+}
+
+/* ---------------- Drag & drop ---------------- */
+const dz = $("#dropZone");
+["dragenter", "dragover"].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("drag"); }));
+["dragleave", "drop"].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("drag"); }));
+dz.addEventListener("drop", (e) => {
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+
+/* ---------------- Helpers ---------------- */
+function uniqueValues(key) {
+  const colName = COLS[key];
+  const set = new Set();
+  rawRows.forEach(r => { const v = String(r[colName] || "").trim(); if (v) set.add(v); });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, "id"));
+}
+
+function rowMatches(row) {
+  for (const f of FILTER_FIELDS) {
+    if (filters[f.key].size === 0) continue;
+    const val = String(row[COLS[f.key]] || "").trim();
+    if (!filters[f.key].has(val)) return false;
+  }
+  if (searchTerm) {
+    const hay = [row[COLS.nama], row[COLS.email], row[COLS.hp]].join(" ").toLowerCase();
+    if (!hay.includes(searchTerm.toLowerCase())) return false;
+  }
+  return true;
+}
+
+function getFilteredRows() {
+  return rawRows.filter(rowMatches).sort((a, b) => {
+    const av = String(a[sortKey] || "").toLowerCase();
+    const bv = String(b[sortKey] || "").toLowerCase();
+    return av.localeCompare(bv, "id") * sortDir;
+  });
+}
+
+/* ---------------- Overview panel: KPI + charts ---------------- */
+const CHART_PALETTE = ["#3457D5", "#0E9F76", "#D97B29", "#8452D5", "#D5348E", "#2AA7C9"];
+
+function countBy(key) {
+  const map = {};
+  rawRows.forEach(r => {
+    const v = String(r[COLS[key]] || "").trim() || "Tidak diisi";
+    map[v] = (map[v] || 0) + 1;
+  });
+  return map;
+}
+
+function buildOverviewKpis() {
+  const total = rawRows.length;
+  const rsblCount = rawRows.filter(r => String(r[COLS.posisiSingkat] || "").trim().toUpperCase() === "RSBL").length;
+  const areaCount = uniqueValues("area").length;
+  const directoCount = uniqueValues("directorate").length;
+  $("#ovKpis").innerHTML = `
+    <div class="kpi"><div class="label">Total Karyawan</div><div class="value">${total}</div><div class="foot">seluruh region</div></div>
+    <div class="kpi"><div class="label">RSBL Aktif</div><div class="value">${rsblCount}</div><div class="foot">memimpin segment</div></div>
+    <div class="kpi"><div class="label">Area Tercakup</div><div class="value">${areaCount}</div><div class="foot">dari 6 area</div></div>
+    <div class="kpi"><div class="label">Directorate</div><div class="value">${directoCount}</div><div class="foot">dari 5 directorate</div></div>
+  `;
+}
+
+function buildOverviewDonut() {
+  const counts = countBy("region");
+  const ordered = REGION_ORDER.filter(r => counts[r]).concat(Object.keys(counts).filter(r => !REGION_ORDER.includes(r)));
+  const total = ordered.reduce((s, r) => s + counts[r], 0) || 1;
+  const colorFor = (r) => ({ West: "#3457D5", Central: "#0E9F76", East: "#D97B29" }[r] || "#8452D5");
+  const R = 46, C = 2 * Math.PI * R;
+  let offset = 0;
+  const circles = ordered.map(r => {
+    const frac = counts[r] / total;
+    const len = frac * C;
+    const seg = `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${colorFor(r)}" stroke-width="16"
+        stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-offset}" transform="rotate(-90 60 60)" />`;
+    offset += len;
+    return seg;
+  }).join("");
+  const svg = `<svg width="120" height="120" viewBox="0 0 120 120">${circles}
+      <circle cx="60" cy="60" r="${R - 9}" fill="var(--surface)" />
+      <text x="60" y="56" text-anchor="middle" font-family="Plus Jakarta Sans" font-weight="800" font-size="20" fill="var(--navy)">${total}</text>
+      <text x="60" y="72" text-anchor="middle" font-family="Inter" font-size="9.5" fill="var(--ink-soft)">orang</text>
+    </svg>`;
+  const legend = ordered.map(r => `
+    <div class="donut-legend-row">
+      <span class="swatch"><span class="dot" style="background:${colorFor(r)}"></span>${r}</span>
+      <b>${counts[r]} <span style="color:var(--ink-soft);font-weight:500;">(${Math.round(counts[r] / total * 100)}%)</span></b>
+    </div>
+  `).join("");
+  $("#ovDonut").innerHTML = `${svg}<div class="donut-legend">${legend}</div>`;
+}
+
+function buildBarChart(targetId, key) {
+  const counts = countBy(key);
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const max = entries.length ? entries[0][1] : 1;
+  $(targetId).innerHTML = entries.map(([label, count], i) => `
+    <div class="bar-row">
+      <div class="bar-label"><span>${escapeHtml(label)}</span><span>${count}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(count / max * 100).toFixed(1)}%;background:${CHART_PALETTE[i % CHART_PALETTE.length]};"></div></div>
+    </div>
+  `).join("");
+}
+
+function renderOverview() {
+  buildOverviewKpis();
+  buildOverviewDonut();
+  buildBarChart("#ovAreaBars", "area");
+  buildBarChart("#ovDirectorateBars", "directorate");
+  buildBarChart("#ovSegmentBars", "segment");
+}
+
+function openOverview() {
+  closeDetailPanel();
+  renderOverview();
+  $("#overviewOverlay").classList.add("show");
+  $("#overviewPanel").classList.add("show");
+}
+function closeOverview() {
+  $("#overviewOverlay").classList.remove("show");
+  $("#overviewPanel").classList.remove("show");
+}
+$("#overviewBtn").addEventListener("click", openOverview);
+$("#overviewOverlay").addEventListener("click", closeOverview);
+$("#overviewClose").addEventListener("click", closeOverview);
+
+/* ---------------- Filters UI ---------------- */
+function buildFilterSelects() {
+  const container = $("#filterSelects");
+  container.innerHTML = "";
+  FILTER_FIELDS.forEach(f => {
+    const options = uniqueValues(f.key);
+    const wrap = document.createElement("div");
+    wrap.className = "msel";
+    wrap.innerHTML = `
+      <button type="button" class="msel-btn">
+        <span>${f.label}</span><span class="count" style="display:none;"></span>
+      </button>
+      <div class="msel-panel">
+        <div class="msel-clear-row">
+          <span class="msel-clear" data-action="all">Pilih semua</span>
+          <span class="msel-clear" data-action="none">Bersihkan</span>
+        </div>
+        ${options.map(o => `<label class="msel-item"><input type="checkbox" value="${escapeHtml(o)}"> ${escapeHtml(o)}</label>`).join("")}
+      </div>
+    `;
+    const btn = wrap.querySelector(".msel-btn");
+    const countEl = wrap.querySelector(".count");
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      $$(".msel").forEach(m => { if (m !== wrap) m.classList.remove("open"); });
+      wrap.classList.toggle("open");
+    });
+    wrap.querySelectorAll(".msel-item input").forEach(cb => {
+      cb.addEventListener("change", () => {
+        if (cb.checked) filters[f.key].add(cb.value); else filters[f.key].delete(cb.value);
+        countEl.style.display = filters[f.key].size ? "inline-block" : "none";
+        countEl.textContent = filters[f.key].size;
+        renderAll();
+      });
+    });
+    wrap.querySelector('[data-action="all"]').addEventListener("click", (e) => {
+      e.stopPropagation();
+      options.forEach(o => filters[f.key].add(o));
+      wrap.querySelectorAll(".msel-item input").forEach(cb => cb.checked = true);
+      countEl.style.display = filters[f.key].size ? "inline-block" : "none";
+      countEl.textContent = filters[f.key].size;
+      renderAll();
+    });
+    wrap.querySelector('[data-action="none"]').addEventListener("click", (e) => {
+      e.stopPropagation();
+      filters[f.key].clear();
+      wrap.querySelectorAll(".msel-item input").forEach(cb => cb.checked = false);
+      countEl.style.display = "none";
+      renderAll();
+    });
+    container.appendChild(wrap);
+  });
+}
+document.addEventListener("click", () => $$(".msel").forEach(m => m.classList.remove("open")));
+
+$("#searchInput").addEventListener("input", (e) => { searchTerm = e.target.value; renderAll(); });
+$("#clearAllBtn").addEventListener("click", () => {
+  FILTER_FIELDS.forEach(f => filters[f.key].clear());
+  searchTerm = "";
+  $("#searchInput").value = "";
+  buildFilterSelects();
+  renderAll();
+});
+
+function renderChips() {
+  const chipsWrap = $("#activeChips");
+  chipsWrap.innerHTML = "";
+  FILTER_FIELDS.forEach(f => {
+    filters[f.key].forEach(val => {
+      chipsWrap.appendChild(makeChip(`${f.label}: ${val}`, () => {
+        filters[f.key].delete(val);
+        buildFilterSelects();
+        renderAll();
+      }));
+    });
+  });
+}
+function makeChip(text, onRemove) {
+  const chip = document.createElement("span");
+  chip.className = "chip";
+  chip.innerHTML = `${escapeHtml(text)} <button aria-label="Hapus filter">✕</button>`;
+  chip.querySelector("button").addEventListener("click", onRemove);
+  return chip;
+}
+
+/* ---------------- Table ---------------- */
+const TABLE_COLUMNS = [
+  { key: COLS.nama, label: "Nama" },
+  { key: COLS.posisiDetail, label: "Posisi Detail" },
+  { key: COLS.region, label: "Region" },
+  { key: COLS.area, label: "Area" },
+  { key: COLS.kota, label: "Kota/Sub-Area" },
+  { key: COLS.segment, label: "Segment" },
+  { key: COLS.posisiSingkat, label: "Posisi" },
+  { key: COLS.superior, label: "Superior" },
+  { key: COLS.directorate, label: "Directorate" },
+  { key: COLS.email, label: "Email" },
+  { key: COLS.hp, label: "No HP" },
+];
+
+function buildTableHead() {
+  const head = $("#tableHead");
+  head.innerHTML = TABLE_COLUMNS.map(c => {
+    const arrow = sortKey === c.key ? (sortDir === 1 ? "↑" : "↓") : "";
+    return `<th data-key="${escapeHtml(c.key)}">${c.label}<span class="arrow">${arrow}</span></th>`;
+  }).join("");
+  head.querySelectorAll("th").forEach(th => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.key;
+      if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = 1; }
+      renderTable();
+    });
+  });
+}
+
+function renderTable() {
+  const rows = getFilteredRows();
+  $("#shownCount").textContent = rows.length;
+  $("#totalCount").textContent = rawRows.length;
+  buildTableHead();
+  const body = $("#tableBody");
+  body.innerHTML = "";
+  $("#noResults").style.display = rows.length ? "none" : "block";
+  rows.forEach((r, idx) => {
+    const region = String(r[COLS.region] || "").trim();
+    const cls = REGION_CLASS[region] || "neutral";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="name-cell">${escapeHtml(r[COLS.nama])}</td>
+      <td class="sub-cell">${escapeHtml(r[COLS.posisiDetail] || "—")}</td>
+      <td><span class="badge ${cls}">${escapeHtml(region || "—")}</span></td>
+      <td>${escapeHtml(r[COLS.area] || "—")}</td>
+      <td>${escapeHtml(r[COLS.kota] || "—")}</td>
+      <td>${escapeHtml(r[COLS.segment] || "—")}</td>
+      <td>${escapeHtml(r[COLS.posisiSingkat] || "—")}</td>
+      <td>${escapeHtml(r[COLS.superior] || "—")}</td>
+      <td>${escapeHtml(r[COLS.directorate] || "—")}</td>
+      <td>${escapeHtml(r[COLS.email] || "—")}</td>
+      <td>${escapeHtml(r[COLS.hp] || "—")}</td>
+    `;
+    tr.addEventListener("click", () => openPanel(r));
+    body.appendChild(tr);
+  });
+}
+
+/* ---------------- Detail panel ---------------- */
+function openPanel(r) {
+  const region = String(r[COLS.region] || "").trim();
+  const cls = REGION_CLASS[region] || "neutral";
+  $("#panelName").textContent = r[COLS.nama] || "—";
+  $("#panelBadge").innerHTML = `<span class="badge ${cls}">${escapeHtml(region || "—")}</span>`;
+  const fields = [
+    ["Posisi Detail", r[COLS.posisiDetail]],
+    ["Posisi Singkat", r[COLS.posisiSingkat]],
+    ["Area", r[COLS.area]],
+    ["Kota/Sub-Area", r[COLS.kota]],
+    ["Segment", r[COLS.segment]],
+    ["Superior", r[COLS.superior]],
+    ["Directorate", r[COLS.directorate]],
+    ["Email", r[COLS.email] ? `<a href="mailto:${escapeHtml(r[COLS.email])}">${escapeHtml(r[COLS.email])}</a>` : null],
+    ["No HP", r[COLS.hp] ? `<a href="tel:${escapeHtml(r[COLS.hp])}">${escapeHtml(r[COLS.hp])}</a>` : null],
+  ];
+  $("#panelBody").innerHTML = fields.map(([k, v]) => `
+    <div class="field"><div class="k">${k}</div><div class="v">${v && String(v).trim() !== "" ? v : "—"}</div></div>
+  `).join("");
+  $("#overlay").classList.add("show");
+  $("#panel").classList.add("show");
+  closeOverview();
+}
+function closeDetailPanel() {
+  $("#overlay").classList.remove("show");
+  $("#panel").classList.remove("show");
+}
+$("#overlay").addEventListener("click", closeDetailPanel);
+$("#panelClose").addEventListener("click", closeDetailPanel);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeDetailPanel(); closeOverview(); } });
+
+/* ---------------- Export CSV ---------------- */
+$("#exportBtn").addEventListener("click", () => {
+  const rows = getFilteredRows();
+  if (!rows.length) return;
+  const headers = Object.keys(COLS).map(k => COLS[k]);
+  const csvRows = [headers.join(",")];
+  rows.forEach(r => {
+    csvRows.push(headers.map(h => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(","));
+  });
+  const blob = new Blob(["\uFEFF" + csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `tim_filtered_${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* ---------------- Utils ---------------- */
+function escapeHtml(str) {
+  if (str === undefined || str === null) return "";
+  return String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function renderAll() {
+  renderChips();
+  renderTable();
+}
+
+/* ---------------- Auto-load saat halaman dibuka ---------------- */
+tryLoadFromApi(false);
+</script>
+</body>
+</html>
