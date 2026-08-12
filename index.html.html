@@ -195,7 +195,7 @@
   }
   .table-toolbar .count-label{font-size:13px;color:var(--ink-soft);}
   .table-toolbar .count-label b{color:var(--ink);}
-  .tbl-scroll{overflow-x:auto;}
+  .tbl-scroll{overflow-x:auto;overflow-y:auto;max-height:620px;}
   table{width:100%;border-collapse:collapse;font-size:13px;min-width:1080px;}
   thead th{
     position:sticky;top:0;background:var(--bg);z-index:5;
@@ -219,6 +219,16 @@
   .badge.east{background:var(--east-soft);color:var(--east);}
   .badge.neutral{background:var(--border-soft);color:var(--ink-soft);}
   .no-results{padding:60px 20px;text-align:center;color:var(--ink-soft);}
+
+  .pagination{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 16px;border-top:1px solid var(--border-soft);flex-wrap:wrap;gap:10px;
+  }
+  .pagination .page-info{font-size:12.5px;color:var(--ink-soft);}
+  .pagination .page-info b{color:var(--ink);}
+  .pagination .page-btns{display:flex;gap:8px;}
+  .pagination .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .pagination .btn:disabled:hover{background:var(--surface);border-color:var(--border);}
 
   /* ---------- Detail panel (slide-over) ---------- */
   .overlay{
@@ -317,6 +327,13 @@
         </table>
       </div>
       <div class="no-results" id="noResults" style="display:none;">Tidak ada orang yang cocok dengan filter ini. Coba ubah atau hapus beberapa filter.</div>
+      <div class="pagination" id="pagination">
+        <span class="page-info">Halaman <b id="pageCurrent">1</b> dari <b id="pageTotal">1</b></span>
+        <div class="page-btns">
+          <button class="btn btn-ghost" id="prevPageBtn">‹ Sebelumnya</button>
+          <button class="btn btn-ghost" id="nextPageBtn">Berikutnya ›</button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -399,6 +416,8 @@ FILTER_FIELDS.forEach(f => filters[f.key] = new Set());
 let searchTerm = "";
 let sortKey = COLS.nama;
 let sortDir = 1;
+let currentPage = 1;
+const PAGE_SIZE = 50;
 let fsHandle = null;      // File System Access API handle, kalau didukung browser
 let dataSource = null;    // "api" (live Google Sheets) atau "file" (upload manual)
 let autoRefreshTimer = null;
@@ -677,6 +696,7 @@ function buildFilterSelects() {
         if (cb.checked) filters[f.key].add(cb.value); else filters[f.key].delete(cb.value);
         countEl.style.display = filters[f.key].size ? "inline-block" : "none";
         countEl.textContent = filters[f.key].size;
+        currentPage = 1;
         renderAll();
       });
     });
@@ -686,6 +706,7 @@ function buildFilterSelects() {
       wrap.querySelectorAll(".msel-item input").forEach(cb => cb.checked = true);
       countEl.style.display = filters[f.key].size ? "inline-block" : "none";
       countEl.textContent = filters[f.key].size;
+      currentPage = 1;
       renderAll();
     });
     wrap.querySelector('[data-action="none"]').addEventListener("click", (e) => {
@@ -693,6 +714,7 @@ function buildFilterSelects() {
       filters[f.key].clear();
       wrap.querySelectorAll(".msel-item input").forEach(cb => cb.checked = false);
       countEl.style.display = "none";
+      currentPage = 1;
       renderAll();
     });
     container.appendChild(wrap);
@@ -700,10 +722,11 @@ function buildFilterSelects() {
 }
 document.addEventListener("click", () => $$(".msel").forEach(m => m.classList.remove("open")));
 
-$("#searchInput").addEventListener("input", (e) => { searchTerm = e.target.value; renderAll(); });
+$("#searchInput").addEventListener("input", (e) => { searchTerm = e.target.value; currentPage = 1; renderAll(); });
 $("#clearAllBtn").addEventListener("click", () => {
   FILTER_FIELDS.forEach(f => filters[f.key].clear());
   searchTerm = "";
+  currentPage = 1;
   $("#searchInput").value = "";
   buildFilterSelects();
   renderAll();
@@ -716,6 +739,7 @@ function renderChips() {
     filters[f.key].forEach(val => {
       chipsWrap.appendChild(makeChip(`${f.label}: ${val}`, () => {
         filters[f.key].delete(val);
+        currentPage = 1;
         buildFilterSelects();
         renderAll();
       }));
@@ -761,13 +785,24 @@ function buildTableHead() {
 }
 
 function renderTable() {
-  const rows = getFilteredRows();
-  $("#shownCount").textContent = rows.length;
+  const allRows = getFilteredRows();
+  const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  const rows = allRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  $("#shownCount").textContent = allRows.length;
   $("#totalCount").textContent = rawRows.length;
+  $("#pageCurrent").textContent = currentPage;
+  $("#pageTotal").textContent = totalPages;
+  $("#prevPageBtn").disabled = currentPage <= 1;
+  $("#nextPageBtn").disabled = currentPage >= totalPages;
+  $("#pagination").style.display = allRows.length ? "flex" : "none";
+
   buildTableHead();
   const body = $("#tableBody");
   body.innerHTML = "";
-  $("#noResults").style.display = rows.length ? "none" : "block";
+  $("#noResults").style.display = allRows.length ? "none" : "block";
   rows.forEach((r, idx) => {
     const region = String(r[COLS.region] || "").trim();
     const cls = REGION_CLASS[region] || "neutral";
@@ -821,6 +856,14 @@ function closeDetailPanel() {
 $("#overlay").addEventListener("click", closeDetailPanel);
 $("#panelClose").addEventListener("click", closeDetailPanel);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeDetailPanel(); closeOverview(); } });
+
+/* ---------------- Pagination ---------------- */
+$("#prevPageBtn").addEventListener("click", () => {
+  if (currentPage > 1) { currentPage--; renderTable(); }
+});
+$("#nextPageBtn").addEventListener("click", () => {
+  currentPage++; renderTable();
+});
 
 /* ---------------- Export CSV ---------------- */
 $("#exportBtn").addEventListener("click", () => {
